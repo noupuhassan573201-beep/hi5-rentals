@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HI5 Rentals | Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#101c30;font:16px system-ui,sans-serif}header{background:#101c30;color:white;padding:18px 5%;display:flex;align-items:center;justify-content:space-between;gap:20px}header a{color:white}main{max-width:1100px;margin:auto;padding:24px}section,article{background:white;border-radius:14px;padding:20px;margin:16px 0}label{display:block;font-weight:600;margin-top:12px}input,select{display:block;font:inherit;padding:9px;border:1px solid #9ba6b6;border-radius:7px;width:100%;margin:4px 0 12px}button,.button{display:inline-block;border:0;background:#a52f00;color:white;padding:9px 14px;border-radius:7px;font:inherit;cursor:pointer;text-decoration:none}a{color:#8e2a00}.layout{display:grid;grid-template-columns:1fr 1fr;gap:20px}.item{display:flex;gap:14px;align-items:center;border-top:1px solid #e6e9ef;padding:10px 0}.item img{width:86px;height:64px;object-fit:cover;border-radius:6px}.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.error{color:#a21a10}article{border:1px solid #e6e9ef}small{display:block;color:#495670}@media(max-width:720px){.layout{grid-template-columns:1fr}} 
+</style></head>
+<body><header><strong>HI5 Rentals Admin</strong><a href="/">View website</a>
+{% if logged_in %}<form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="token" value="{{ token }}"><button>Sign out</button></form>{% endif %}
+</header><main>
+{% if error %}<p role="alert" class="error">{{ error }}</p>{% endif %}
+{% if logged_in %}
+<h1>Manage HI5 Rentals</h1><a href="#bookings">Booking requests</a>
+<div class="layout"><section>
+<h2>{{ 'Edit vehicle' if selected else 'Add vehicle' }}</h2>
+<form method="post" enctype="multipart/form-data" action="{{ url_for('save_vehicle', vehicle_id=selected.id) if selected else url_for('save_vehicle') }}">
+<input type="hidden" name="token" value="{{ token }}">
+<label for="name">Vehicle name</label><input id="name" name="name" maxlength="100" required value="{{ selected.name if selected else '' }}">
+<label for="type">Type</label><select id="type" name="type"><option value="car">Car</option><option value="bike" {% if selected and selected.type == 'bike' %}selected{% endif %}>Bike</option></select>
+<label for="price">Daily price in ₹</label><input id="price" name="price" type="number" min="1" max="1000000" required value="{{ selected.price if selected else '' }}">
+<label for="meta">Vehicle details</label><input id="meta" name="meta" maxlength="200" value="{{ selected.meta if selected else '' }}">
+<label for="photo">{{ 'Replace photo' if selected else 'Vehicle photo' }}</label><input id="photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp" {% if not selected %}required{% endif %}>
+<small>JPEG, PNG or WebP. Up to 12 MB and 25 megapixels.</small><p><button>Save vehicle</button> {% if selected %}<a href="{{ url_for('admin') }}">Cancel</a>{% endif %}</p>
+</form></section><section><h2>Fleet ({{ vehicles|length }})</h2>
+{% for vehicle in vehicles %}
+<div class="item"><img src="{{ vehicle.img }}" alt=""><div><strong>{{ vehicle.name }}</strong><p>₹{{ vehicle.price }} per day</p><div class="actions">
+<a href="{{ url_for('edit', vehicle_id=vehicle.id) }}">Edit</a>
+<form method="post" action="{{ url_for('delete_vehicle', vehicle_id=vehicle.id) }}" onsubmit="return confirm('Remove this vehicle from the public fleet?')"><input type="hidden" name="token" value="{{ token }}"><button>Remove</button></form>
+</div></div></div>
+{% else %}<p>No vehicles listed.</p>{% endfor %}
+</section></div>
+<section id="bookings"><h2>Booking requests ({{ bookings|length }})</h2>
+{% for booking in bookings %}
+<article><strong>{{ booking.vehicle }} · {{ booking.reference }}</strong>
+<p>{{ booking.customer }} · <a href="tel:{{ booking.phone }}">{{ booking.phone }}</a><br>{{ booking.pickup }} to {{ booking.return_date }} · ₹{{ booking.amount }}</p>
+<form method="post" action="{{ url_for('update_booking', reference=booking.reference) }}">
+<input type="hidden" name="token" value="{{ token }}">
+<label for="{{ booking.reference }}">Status</label><select id="{{ booking.reference }}" name="status">
+{% for status in ['Pending', 'Confirmed', 'Declined', 'Completed'] %}<option {% if booking.status == status %}selected{% endif %}>{{ status }}</option>{% endfor %}
+</select><button>Update status</button></form></article>
+{% else %}<p>No booking requests yet.</p>{% endfor %}</section>
+{% else %}
+<section style="max-width:420px;margin-inline:auto"><h1>Admin login</h1><form method="post">
+<input type="hidden" name="token" value="{{ token }}"><label for="password">Password</label>
+<input id="password" name="password" type="password" maxlength="256" autocomplete="current-password" required><button>Sign in</button>
+</form></section>
+{% endif %}
+</main></body></html>
